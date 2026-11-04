@@ -1,0 +1,49 @@
+/*
+ * PROTOTIPO 4 LEDS: Arduino Leonardo + LM358
+ * Sin bloqueo de puerto USB Serie
+ */
+
+const int ledPins[] = {2, 3, 4, 5};   // Pines para los 4 LEDs
+const int numLeds = 4;
+const int sensorPin = A0;             // Pin analógico (Pin 1 del LM358)
+
+void setup() {
+  Serial.begin(9600);
+  // Se remueve "while(!Serial)" para evitar el bloqueo inicial del Leonardo
+
+  for (int i = 0; i < numLeds; i++) {
+    pinMode(ledPins[i], OUTPUT);
+    digitalWrite(ledPins[i], LOW);
+  }
+}
+
+void loop() {
+  int sensorValue = analogRead(sensorPin);
+  float voltage = sensorValue * (5.0 / 1023.0);
+
+  // Mapeo dinámico para 4 LEDs
+  // Mapeamos considerando el tope real del LM358 (~745 en lugar de 1023)
+  int ledsToOn = map(sensorValue, 0, 744, 0, numLeds);
+  ledsToOn = constrain(ledsToOn, 0, numLeds);
+
+  // Actualizar salida física de los LEDs
+  for (int i = 0; i < numLeds; i++) {
+    if (i < ledsToOn) {
+      digitalWrite(ledPins[i], HIGH);
+    } else {
+      digitalWrite(ledPins[i], LOW);
+    }
+  }
+
+  // Depuración (solo enviará datos cuando abras el Monitor Serie)
+  if (Serial) {
+    Serial.print("ADC: ");
+    Serial.print(sensorValue);
+    Serial.print(" | Voltaje: ");
+    Serial.print(voltage, 2);
+    Serial.print("V | LEDs Encendidos: ");
+    Serial.println(ledsToOn);
+  }
+
+  delay(100);
+}
