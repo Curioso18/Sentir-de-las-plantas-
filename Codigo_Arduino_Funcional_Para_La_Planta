@@ -1,0 +1,56 @@
+/*
+ * PROTOTIPO BIOELECTRICIDAD VEGETAL: Reacciones Reales de la Planta
+ * Hardware: Arduino Leonardo + LM358 (Pin A0) + 4 LEDs
+ */
+
+const int ledPins[] = {2, 3, 4, 5};   // Pines de la barra de LEDs
+const int numLeds = 4;
+const int sensorPin = A0;             // Salida del LM358 (Pin 1)
+
+// Variables para detectar cambios dinámicos
+int baseline = 512;                   // Valor base inicial de referencia
+
+void setup() {
+  Serial.begin(9600);
+
+  for (int i = 0; i < numLeds; i++) {
+    pinMode(ledPins[i], OUTPUT);
+    digitalWrite(ledPins[i], LOW);
+  }
+  
+  // Tomamos una lectura inicial rápida para establecer el "reposo" de la planta
+  baseline = analogRead(sensorPin);
+}
+
+void loop() {
+  int rawValue = analogRead(sensorPin);
+  
+  // Calculamos la desviación respecto al estado base (captura el "sobresalto" o reacción)
+  int delta = abs(rawValue - baseline);
+
+  // Mapeamos la reacción a los 4 LEDs (ajusta el multiplicador según qué tan sensible quieras que sea)
+  int ledsToOn = map(delta, 0, 200, 0, numLeds); 
+  ledsToOn = constrain(ledsToOn, 0, numLeds);
+
+  // Actualizar los LEDs en tiempo real
+  for (int i = 0; i < numLeds; i++) {
+    if (i < ledsToOn) {
+      digitalWrite(ledPins[i], HIGH);
+    } else {
+      digitalWrite(ledPins[i], LOW);
+    }
+  }
+
+  // Monitor Serie para registrar la actividad impredecible
+  Serial.print("Crudo: ");
+  Serial.print(rawValue);
+  Serial.print(" | Desviacion (Reaccion): ");
+  Serial.print(delta);
+  Serial.print(" | LEDs: ");
+  Serial.println(ledsToOn);
+
+  // Auto-ajuste muy lento de la línea base para adaptarse al estado natural de la planta
+  baseline = (baseline * 0.99) + (rawValue * 0.01);
+
+  delay(50); // Muestreo rápido para no perder reacciones súbitas
+}
