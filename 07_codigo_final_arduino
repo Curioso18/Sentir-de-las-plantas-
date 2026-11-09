@@ -1,0 +1,56 @@
+#include <MIDIUSB.h>
+
+const int ledPins[] = {2, 3, 4, 5};    // Pines de la barra de LEDs
+const int numLeds = 4;
+const int sensorPin = A0;              // Salida del LM358
+
+int baseline = 512;                    
+unsigned long lastSendTime = 0;        
+
+void setup() {
+  Serial.begin(9600);
+  for (int i = 0; i < numLeds; i++) {
+    pinMode(ledPins[i], OUTPUT);
+    digitalWrite(ledPins[i], LOW);
+  }
+  baseline = analogRead(sensorPin);
+}
+
+void loop() {
+  int rawValue = analogRead(sensorPin);
+  int delta = abs(rawValue - baseline);
+
+  int ledsToOn = map(delta, 0, 200, 0, numLeds); 
+  ledsToOn = constrain(ledsToOn, 0, numLeds);
+
+  for (int i = 0; i < numLeds; i++) {
+    if (i < ledsToOn) {
+      digitalWrite(ledPins[i], HIGH);
+    } else {
+      digitalWrite(ledPins[i], LOW);
+    }
+  }
+
+  // Si la planta reacciona y enciende 2 o más LEDs:
+  if (ledsToOn >= 2 && (millis() - lastSendTime > 300)) {
+    int midiNote = map(delta, 30, 200, 48, 72); // Notas de C3 a C5
+    midiNote = constrain(midiNote, 0, 127);
+
+    // ENVIAR MENSAJE MIDI (Note On)
+    uint8_t noteOnPacket[4] = {0x09, 0x90, (uint8_t)midiNote, 127};
+    MidiUSB.write(noteOnPacket, 4);
+    MidiUSB.flush();
+
+    delay(100);
+
+    // ENVIAR MENSAJE MIDI (Note Off)
+    uint8_t noteOffPacket[4] = {0x08, 0x80, (uint8_t)midiNote, 0};
+    MidiUSB.write(noteOffPacket, 4);
+    MidiUSB.flush();
+
+    lastSendTime = millis();
+  }
+
+  baseline = (baseline * 0.99) + (rawValue * 0.01);
+  delay(50);
+}
