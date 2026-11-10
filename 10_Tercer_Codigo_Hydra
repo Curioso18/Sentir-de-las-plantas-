@@ -1,0 +1,27 @@
+let plantaVal = 60;
+let targetVal = 60;
+
+if (navigator.requestMIDIAccess) {
+  navigator.requestMIDIAccess().then((midiAccess) => {
+    for (let input of midiAccess.inputs.values()) {
+      input.onmidimessage = (msg) => {
+        if (msg.data[0] === 144 && msg.data[2] > 0) {
+          targetVal = msg.data[1];
+        }
+      };
+    }
+  });
+}
+
+update = () => {
+  plantaVal += (targetVal - plantaVal) * 0.08;
+  targetVal += (60 - targetVal) * 0.02;
+}
+
+osc(20, 0.1, () => plantaVal * 0.05)
+  .kaleid(5)
+  .rotate(({time}) => time * 0.05, ({time}) => Math.sin(time * 0.2) * 0.1)
+  .color(1, () => plantaVal * 0.02, 0.5)
+  .modulate(noise(3, 0.3), 0.5)
+  .scale(1.2)
+  .out();
