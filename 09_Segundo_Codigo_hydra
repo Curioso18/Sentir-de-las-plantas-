@@ -1,0 +1,29 @@
+// Con este codigo tengan cuidado si sufren de epilepsia o alguna consición similar 
+
+let plantaVal = 60;
+let targetVal = 60;
+
+if (navigator.requestMIDIAccess) {
+  navigator.requestMIDIAccess().then((midiAccess) => {
+    for (let input of midiAccess.inputs.values()) {
+      input.onmidimessage = (msg) => {
+        if (msg.data[0] === 144 && msg.data[2] > 0) {
+          targetVal = msg.data[1];
+        }
+      };
+    }
+  });
+}
+
+update = () => {
+  plantaVal += (targetVal - plantaVal) * 0.08;
+  targetVal += (60 - targetVal) * 0.02;
+}
+
+osc(() => 10 + (plantaVal * 0.05), 0.1, 0.8)
+  .kaleid(8)
+  .rotate(0.1, ({time}) => time * 0.05)
+  .color(() => Math.sin(time * 0.3) * 0.5 + 0.5, 0.7, 1.2)
+  .modulate(noise(4, 0.2), 0.3)
+  .scale(({time}) => Math.sin(time * 0.5) * 0.3 + 1.2)
+  .out();
